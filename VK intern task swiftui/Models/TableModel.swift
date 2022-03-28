@@ -6,22 +6,33 @@
 //
 
 import Foundation
-import Combine
 
 class TableModel: ObservableObject {
     static let shared: TableModel = TableModel()
     
-    func fetchData(perPage: Int = 30, sinceId: Int? = nil) -> AnyPublisher<[Cell], Error> {
-        var components = URLComponents(string: "https://95c8606c-95e9-4307-9610-4b5b618782da.mock.pstmn.io/getCells")!
-        components.queryItems = [
-            URLQueryItem(name: "per_page", value: "\(perPage)"),
-            URLQueryItem(name: "since", value: (sinceId != nil) ? String(sinceId!) : nil)
-        ]
-        let request = URLRequest(url: components.url!, timeoutInterval: 10)
-        return URLSession.shared.dataTaskPublisher(for: request)
-            .map(\.data)
-            .decode(type: [Cell].self, decoder: JSONDecoder())
-            .eraseToAnyPublisher()
+    var cells: [Cell]
+    
+    func fetchData() {
+        let url = URL(string: "https://95c8606c-95e9-4307-9610-4b5b618782da.mock.pstmn.io/getCells")!
+        let request = URLRequest(url: url, timeoutInterval: 10)
+        URLSession.shared.dataTask(with: request) { data, _, _ in
+            if let fetchedData = data {
+
+                let decoder = JSONDecoder()
+                do {
+                    let decodedData = try decoder.decode([Cell].self, from: fetchedData)
+                    self.cells = decodedData
+                } catch {
+                    print("failure")
+                }
+            }
+        }
+        .resume()
+    }
+    
+    init() {
+        self.cells = []
+        self.fetchData()
     }
 }
 
@@ -35,9 +46,4 @@ struct Cell: Decodable {
         case date = "date"
         case value = "value"
     }
-}
-
-enum FetchState: String {
-    case success = "All done"
-    case errorOccured = "Couldn't fetch data"
 }

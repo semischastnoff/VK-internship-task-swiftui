@@ -6,38 +6,49 @@
 //
 
 import SwiftUI
-import Combine
 
 struct ContentView: View {
     @StateObject var tableViewModel: TableViewModel = TableViewModel.shared
     
     var body: some View {
         NavigationView {
-            List {
-                ForEach(self.tableViewModel.cells, id: \.id) { cell in
-                    CellView(cellInformation: cell)
+            if self.tableViewModel.showList {
+                List {
+                    ForEach(self.tableViewModel.cells, id: \.id) { cell in
+                        CellView(cellInformation: cell)
+                    }
+                        .listRowSeparator(.hidden)
                 }
-                    .listRowSeparator(.hidden)
-                LoadingView(didFail: self.tableViewModel.didFail)
-                    .onAppear(perform: self.fetchData)
-                    .onTapGesture(perform: self.loadOnTap)
-                    .listRowSeparator(.hidden)
+                .listStyle(.plain)
+                .navigationTitle("Показания датчика")
+                .navigationBarTitleDisplayMode(.automatic)
+                .refreshable {
+                    withAnimation(.easeOut) {
+                        self.fetchData()
+                    }
+                }
+            } else {
+                Button {
+                    withAnimation(.easeOut) {
+                        self.tableViewModel.showList = true
+                        self.fetchData()
+                    }
+                } label: {
+                    Text("Загрузить")
+                        .foregroundColor(.primary)
+                        .font(.title3)
+                        .fontWeight(.bold)
+                        .padding()
+                        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 20))
+                }
+                .navigationTitle("Показания датчика")
+                .navigationBarTitleDisplayMode(.automatic)
             }
-            .listStyle(.plain)
-            .navigationTitle("Показания датчика")
-            .navigationBarTitleDisplayMode(.automatic)
         }
     }
     
     private func fetchData() {
         self.tableViewModel.getCells()
-    }
-    
-    private func loadOnTap() {
-        if self.tableViewModel.didFail {
-            self.tableViewModel.didFail = false
-            self.fetchData()
-        }
     }
 }
 
